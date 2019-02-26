@@ -7,6 +7,7 @@
 import urllib.request as req
 import sys
 import os
+from html.parser import HTMLParser
 
 
 # -------------------------------------------------------------------------
@@ -24,6 +25,20 @@ class Dummy_Policy:
     def updateURLs(self, c, retrievedURLs, retrievedURLsWD, iteration):
         pass
 
+class LIFO_Policy:
+    def __init__(self, c):
+        self.queue = c.seedURLs[:]
+
+    def getURL(self, c, iteration):
+        if len(c.URLs) == 0:
+            return None
+        else:
+            return self.queue.pop()
+
+    def updateURLs(self, c, retrievedURLs, retrievedURLsWD, iteration):
+        tmpList = list(retrievedURLs)
+        tmpList.sort(key=lambda url: url[len(url) - url[::-1].index('/'):])
+        self.queue.append(tmpList)
 
 # -------------------------------------------------------------------------
 # Data container
@@ -45,11 +60,11 @@ class Container:
         # Incoming URLs (to <- from; set of incoming links)
         self.incomingURLs = {}
         # Class which maintains a queue of urls to visit.
-        self.generatePolicy = Dummy_Policy()
+        self.generatePolicy = LIFO_Policy(self)
         # Page (URL) to be fetched next
         self.toFetch = None
         # Number of iterations of a crawler.
-        self.iterations = 3
+        self.iterations = 10
 
         # If true: store all crawled html pages in the provided directory.
         self.storePages = True
@@ -68,6 +83,13 @@ class Container:
         # If True: debug
         self.debug = True
 
+class Parser(HTMLParser):
+    def __init__(self):
+        HTMLParser.__init__(self)
+        self.output_list = []
+    def handle_starttag(self, tag, attrs):
+        if tag == 'a':
+            self.output_list.append(dict(attrs).get('href'))
 
 def main():
     # Initialise data
@@ -190,8 +212,8 @@ def fetch(c):
 
 # Remove wrong URL (TODO)
 def removeWrongURL(c):
-    # TODO
-    pass
+    if fetch(c) == None:
+        c.URLs.remove(c.toFetch)
 
 
 # -------------------------------------------------------------------------
@@ -199,8 +221,9 @@ def removeWrongURL(c):
 def parse(c, page, iteration):
     # data to be saved (DONE)
     htmlData = page.read()
-    # obtained URLs (TODO)
-    retrievedURLs = set([])
+    parser = Parser()
+    parser.feed(str(htmlData))
+    retrievedURLs = set(parser.output_list)
     if c.debug:
         print("   Extracted " + str(len(retrievedURLs)) + " links")
 
@@ -216,8 +239,7 @@ def getNormalisedURLs(retrievedURLs):
 # -------------------------------------------------------------------------
 # Remove duplicates (duplicates) (TODO)
 def removeDuplicates(c, retrievedURLs):
-    # TODO
-    return retrievedURLs
+    return retrievedURLs.difference(c.URLs)
 
 
 # -------------------------------------------------------------------------
