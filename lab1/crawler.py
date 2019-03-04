@@ -8,6 +8,7 @@ import urllib.request as req
 import sys
 import os
 from html.parser import HTMLParser
+import numpy
 
 
 # -------------------------------------------------------------------------
@@ -89,20 +90,35 @@ class LIFO_Authority_Policy:
         while ((len(self.queue) != 0) and (self.queue[-1] in self.fetched)):
             self.queue.remove(self.queue[-1])
         if len(self.queue) == 0:
-            for url in c.URLs:
-                self.authority[url] = c.incomingURLs.get(url) + 1
             self.queue = c.seedURLs[:]
             self.fetched.clear()
+            self.auth(c)
             return self.queue.pop()
-        else:
+        elif len(self.authority) == 0:
             new_fetch = self.queue.pop()
             self.fetched.add(new_fetch)
             return new_fetch
+        else:
+            valSum = sum(self.authority.values())
+            for key, val in self.authority.items():
+                self.authority[key] = val/valSum
+            random_fetch = numpy.random.choice(list(self.authority.keys()), p=list(self.authority.values()))
+            self.fetched.add(random_fetch)
+            print(">>>RANDOM FETCH", random_fetch)
+            if not random_fetch in c.lifoAuthScore:
+                c.lifoAuthScore[random_fetch] = 1
+            else:
+                c.lifoAuthScore[random_fetch] += 1
+            return random_fetch
 
     def updateURLs(self, c, retrievedURLs, retrievedURLsWD, iteration):
         tmpList = list(retrievedURLs)
         tmpList.sort(key=lambda url: url[len(url) - url[::-1].index('/'):])
         self.queue.extend(tmpList)
+
+    def auth(self, c):
+        for keys, values in c.incomingURLs.items():
+            self.authority[keys] = len(values) + 1
 
 class FIFO_Policy:
     def __init__(self, c):
@@ -193,7 +209,7 @@ class Container:
         # self.iterations = 10
 
         # exercise 3
-        self.iterations = 5
+        self.iterations = 50
 
         # If true: store all crawled html pages in the provided directory.
         self.storePages = True
@@ -211,6 +227,8 @@ class Container:
 
         # If True: debug
         self.debug = True
+
+        self.lifoAuthScore = dict()
 
 class Parser(HTMLParser):
     def __init__(self):
@@ -289,13 +307,16 @@ def main():
             for url in retrievedURLsWD:
                 c.URLs.add(url)
 
-    # store urls
     if c.storeURLs:
         storeURLs(c)
     if c.storeOutgoingURLs:
         storeOutgoingURLs(c)
     if c.storeIncomingURLs:
         storeIncomingURLs(c)
+
+    print("===AUTH SCORE===")
+    for key, val in c.lifoAuthScore.items():
+        print(key, val)
 
     # -------------------------------------------------------------------------
 
