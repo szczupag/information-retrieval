@@ -40,6 +40,76 @@ class LIFO_Policy:
         tmpList.sort(key=lambda url: url[len(url) - url[::-1].index('/'):])
         self.queue.extend(tmpList)
 
+class LIFO_Policy1e:
+    def __init__(self, c):
+        self.queue = c.seedURLs[:]
+
+    def getURL(self, c, iteration):
+        if len(self.queue) == 0:
+            self.queue = c.seedURLs[:]
+            return self.queue.pop()
+        else:
+            return self.queue.pop()
+
+    def updateURLs(self, c, retrievedURLs, retrievedURLsWD, iteration):
+        tmpList = list(retrievedURLs)
+        tmpList.sort(key=lambda url: url[len(url) - url[::-1].index('/'):])
+        self.queue.extend(tmpList)
+
+class LIFO_Cycle_Policy:
+    def __init__(self, c):
+        self.queue = c.seedURLs[:]
+        self.fetched = set()
+
+    def getURL(self, c, iteration):
+        while ((len(self.queue) != 0) and (self.queue[-1] in self.fetched)):
+            self.queue.remove(self.queue[-1])
+        if len(self.queue) == 0:
+            self.queue = c.seedURLs[:]
+            self.fetched.clear()
+            return self.queue.pop()
+        else:
+            new_fetch = self.queue.pop()
+            self.fetched.add(new_fetch)
+            return new_fetch
+
+    def updateURLs(self, c, retrievedURLs, retrievedURLsWD, iteration):
+        tmpList = list(retrievedURLs)
+        tmpList.sort(key=lambda url: url[len(url) - url[::-1].index('/'):])
+        self.queue.extend(tmpList)
+
+class FIFO_Policy:
+    def __init__(self, c):
+        self.queue = c.seedURLs[:]
+
+    def getURL(self, c, iteration):
+        if len(self.queue) == 0:
+            return None
+        else:
+            return self.queue.pop(0)
+
+    def updateURLs(self, c, retrievedURLs, retrievedURLsWD, iteration):
+        tmpList = list(retrievedURLs)
+        tmpList.sort(key=lambda url: url[len(url) - url[::-1].index('/'):])
+        self.queue.extend(tmpList)
+
+
+class FIFO_Policy1e:
+    def __init__(self, c):
+        self.queue = c.seedURLs[:]
+
+    def getURL(self, c, iteration):
+        if len(self.queue) == 0:
+            self.queue = c.seedURLs[:]
+            return self.queue.pop(0)
+        else:
+            return self.queue.pop(0)
+
+    def updateURLs(self, c, retrievedURLs, retrievedURLsWD, iteration):
+        tmpList = list(retrievedURLs)
+        tmpList.sort(key=lambda url: url[len(url) - url[::-1].index('/'):])
+        self.queue.extend(tmpList)
+
 # -------------------------------------------------------------------------
 # Data container
 class Container:
@@ -47,7 +117,14 @@ class Container:
         # The name of the crawler"
         self.crawlerName = "IRbot"
         # Example ID
-        self.example = "exercise1"
+
+        # exercise1
+        # self.example = "exercise1"
+
+        # exercise2
+        self.example = "exercise2"
+
+
         # Root (host) page
         self.rootPage = "http://www.cs.put.poznan.pl/mtomczyk/ir/lab1/" + self.example
         # Initial links to visit
@@ -60,7 +137,23 @@ class Container:
         # Incoming URLs (to <- from; set of incoming links)
         self.incomingURLs = {}
         # Class which maintains a queue of urls to visit.
-        self.generatePolicy = LIFO_Policy(self)
+
+        # 1a,b,c
+        #self.generatePolicy = LIFO_Policy(self)
+
+        # 1d
+        #self.generatePolicy = FIFO_Policy(self)
+
+        # 1e LIFO
+        # self.generatePolicy = LIFO_Policy1e(self)
+
+        # 1e FIFO
+        # self.generatePolicy = FIFO_Policy1e(self)
+
+        # 2
+        self.generatePolicy = LIFO_Cycle_Policy(self)
+
+
         # Page (URL) to be fetched next
         self.toFetch = None
         # Number of iterations of a crawler.
