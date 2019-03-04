@@ -78,6 +78,32 @@ class LIFO_Cycle_Policy:
         tmpList.sort(key=lambda url: url[len(url) - url[::-1].index('/'):])
         self.queue.extend(tmpList)
 
+
+class LIFO_Authority_Policy:
+    def __init__(self, c):
+        self.queue = c.seedURLs[:]
+        self.fetched = set()
+        self.authority = dict()
+
+    def getURL(self, c, iteration):
+        while ((len(self.queue) != 0) and (self.queue[-1] in self.fetched)):
+            self.queue.remove(self.queue[-1])
+        if len(self.queue) == 0:
+            for url in c.URLs:
+                self.authority[url] = c.incomingURLs.get(url) + 1
+            self.queue = c.seedURLs[:]
+            self.fetched.clear()
+            return self.queue.pop()
+        else:
+            new_fetch = self.queue.pop()
+            self.fetched.add(new_fetch)
+            return new_fetch
+
+    def updateURLs(self, c, retrievedURLs, retrievedURLsWD, iteration):
+        tmpList = list(retrievedURLs)
+        tmpList.sort(key=lambda url: url[len(url) - url[::-1].index('/'):])
+        self.queue.extend(tmpList)
+
 class FIFO_Policy:
     def __init__(self, c):
         self.queue = c.seedURLs[:]
@@ -122,7 +148,10 @@ class Container:
         # self.example = "exercise1"
 
         # exercise2
-        self.example = "exercise2"
+        #self.example = "exercise2"
+
+        # exercise3
+        self.example = "exercise3"
 
 
         # Root (host) page
@@ -151,13 +180,20 @@ class Container:
         # self.generatePolicy = FIFO_Policy1e(self)
 
         # 2
-        self.generatePolicy = LIFO_Cycle_Policy(self)
+        # self.generatePolicy = LIFO_Cycle_Policy(self)
 
+        # 3
+        self.generatePolicy = LIFO_Authority_Policy(self)
 
         # Page (URL) to be fetched next
         self.toFetch = None
         # Number of iterations of a crawler.
-        self.iterations = 10
+
+        # exercise 1,2
+        # self.iterations = 10
+
+        # exercise 3
+        self.iterations = 5
 
         # If true: store all crawled html pages in the provided directory.
         self.storePages = True
