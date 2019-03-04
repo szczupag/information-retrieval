@@ -30,7 +30,7 @@ class LIFO_Policy:
         self.queue = c.seedURLs[:]
 
     def getURL(self, c, iteration):
-        if len(c.URLs) == 0:
+        if len(self.queue) == 0:
             return None
         else:
             return self.queue.pop()
@@ -38,7 +38,7 @@ class LIFO_Policy:
     def updateURLs(self, c, retrievedURLs, retrievedURLsWD, iteration):
         tmpList = list(retrievedURLs)
         tmpList.sort(key=lambda url: url[len(url) - url[::-1].index('/'):])
-        self.queue.append(tmpList)
+        self.queue.extend(tmpList)
 
 # -------------------------------------------------------------------------
 # Data container
@@ -233,7 +233,7 @@ def parse(c, page, iteration):
 # -------------------------------------------------------------------------
 # Normalise newly obtained links (TODO)
 def getNormalisedURLs(retrievedURLs):
-    return retrievedURLs
+    return set(map(lambda x: x.lower(), retrievedURLs))
 
 
 # -------------------------------------------------------------------------
@@ -246,6 +246,8 @@ def removeDuplicates(c, retrievedURLs):
 # Filter out some URLs (TODO)
 def getFilteredURLs(c, retrievedURLs):
     toLeft = set([url for url in retrievedURLs if url.lower().startswith(c.rootPage)])
+    if (c.toFetch in toLeft):
+        toLeft.remove(c.toFetch)
     if c.debug:
         print("   Filtered out " + str(len(retrievedURLs) - len(toLeft)) + " urls")
     return toLeft
